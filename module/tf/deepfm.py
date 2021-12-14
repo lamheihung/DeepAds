@@ -5,84 +5,84 @@ import tensorflow as tf
 from fm import FM
 
 class DeepFM(FM):
-  """Deep Factorization Machine
-
-  Args:
-    dnn_unit(list(int)): This arg is to input the number of unit of each layer in DNN part.
-    activation(str): This arg is to input the activation of each layer in DNN part.
-    is_bn(bool): This arg is to input the usage of BatchNormalization.
-    is_dropout(float): This arg is to input the dropout weight.
-    input_config(dict): This arg is to input the dataset configuration and for the construction of the input.
-    latent_k(int): This arg is to declare the embedding dimension of sparse features.
-    random_state(int): This arg is to initialize the random seed. Default 42.
-    data_type(object): This arg is to declare the weighting data type in tensorflow. Default tf.float32.
-
-Attributes:
-    dnn_layers(list(layer)): This attribute is to store the model structure of DNN part.
-    output_layer(layer): This attribute is to store the output layer of the model.
-  """
-  def __init__(self, dnn_unit, activation, is_bn, is_dropout, input_config, latent_k, random_state=42, data_type=tf.float32):
-    super().__init__(input_config=input_config, latent_k=latent_k, random_state=random_state, data_type=data_type)
-    self.dnn_layers = self._init_dnn_struct(dnn_unit, activation, is_bn, is_dropout)
-    self.output_layer = tf.keras.layers.Dense(units=1, activation='sigmoid')
-
-  def _init_dnn_struct(self, dnn_unit, activation, is_bn, is_dropout):
-    """Initalization of model of DNN part
+    """Deep Factorization Machine
 
     Args:
         dnn_unit(list(int)): This arg is to input the number of unit of each layer in DNN part.
         activation(str): This arg is to input the activation of each layer in DNN part.
         is_bn(bool): This arg is to input the usage of BatchNormalization.
         is_dropout(float): This arg is to input the dropout weight.
+        input_config(dict): This arg is to input the dataset configuration and for the construction of the input.
+        latent_k(int): This arg is to declare the embedding dimension of sparse features.
+        random_state(int): This arg is to initialize the random seed. Default 42.
+        data_type(object): This arg is to declare the weighting data type in tensorflow. Default tf.float32.
 
-    Returns:
-        dnn_list: List of layer for the DNN part.
+    Attributes:
+        dnn_layers(list(layer)): This attribute is to store the model structure of DNN part.
+        output_layer(layer): This attribute is to store the output layer of the model.
     """
-    dnn_list = list()
+    def __init__(self, dnn_unit, activation, is_bn, is_dropout, input_config, latent_k, random_state=42, data_type=tf.float32):
+        super().__init__(input_config=input_config, latent_k=latent_k, random_state=random_state, data_type=data_type)
+        self.dnn_layers = self._init_dnn_struct(dnn_unit, activation, is_bn, is_dropout)
+        self.output_layer = tf.keras.layers.Dense(units=1, activation='sigmoid')
 
-    for _idx, unit in enumerate(dnn_unit):
-      dnn_list += [tf.keras.layers.Dense(unit, activation=activation)]
-      if is_bn:
-        dnn_list += [tf.keras.layers.BatchNormalization()]
-      if is_dropout:
-        dnn_list += [tf.keras.layers.Dropout(is_dropout)]
-    
-    return dnn_list
+    def _init_dnn_struct(self, dnn_unit, activation, is_bn, is_dropout):
+        """Initalization of model of DNN part
 
-  def call(self, inputs):
-    """Calculation of deep factorization machine of each calling in each training step.
+        Args:
+            dnn_unit(list(int)): This arg is to input the number of unit of each layer in DNN part.
+            activation(str): This arg is to input the activation of each layer in DNN part.
+            is_bn(bool): This arg is to input the usage of BatchNormalization.
+            is_dropout(float): This arg is to input the dropout weight.
 
-    Args:
-      inputs(dict): Dictionary of tensors of dataset for calculation.
+        Returns:
+            dnn_list: List of layer for the DNN part.
+        """
+        dnn_list = list()
 
-    Returns:
-      output: Predicted value of each observations.
-    """
-    input_layers = [self.input_layers[input_layer](ts) for input_layer, ts in inputs.items()]
-    inputs = tf.keras.layers.Concatenate(name='inputs')(input_layers)
-    axis = 1 if len(inputs.shape) > 1 else None
+        for _idx, unit in enumerate(dnn_unit):
+            dnn_list += [tf.keras.layers.Dense(unit, activation=activation)]
+            if is_bn:
+                dnn_list += [tf.keras.layers.BatchNormalization()]
+            if is_dropout:
+                dnn_list += [tf.keras.layers.Dropout(is_dropout)]
+        
+        return dnn_list
 
-    linear = self.cal_linear(inputs, axis)
-    fm = self.cal_fm(inputs, axis)
-    dnn = self.cal_dnn(inputs, axis)
-    
-    output = tf.keras.layers.Concatenate(name='output')([linear, fm, dnn])
-    output = self.output_layer(output)
+    def call(self, inputs):
+        """Calculation of deep factorization machine of each calling in each training step.
 
-    return output
+        Args:
+            inputs(dict): Dictionary of tensors of dataset for calculation.
 
-  def cal_dnn(self, inputs):
-    """Calculation of dnn part of deep factorization machine
+        Returns:
+            output: Predicted value of each observations.
+        """
+        input_layers = [self.input_layers[input_layer](ts) for input_layer, ts in inputs.items()]
+        inputs = tf.keras.layers.Concatenate(name='inputs')(input_layers)
+        axis = 1 if len(inputs.shape) > 1 else None
 
-    Args:
-      inputs(dict): Dictionary of tensors of dataset for calculation.
-    
-    Returns:
-      linear: Predicted value of linear part of each observations.
-    """
-    dnn = tf.tensordot(inputs, tf.transpose(self.v), axes=1)
+        linear = self.cal_linear(inputs, axis)
+        fm = self.cal_fm(inputs, axis)
+        dnn = self.cal_dnn(inputs, axis)
+        
+        output = tf.keras.layers.Concatenate(name='output')([linear, fm, dnn])
+        output = self.output_layer(output)
 
-    for layer in self.dnn_layers:
-      dnn = layer(dnn)
-    
-    return dnn
+        return output
+
+    def cal_dnn(self, inputs):
+        """Calculation of dnn part of deep factorization machine
+
+        Args:
+            inputs(dict): Dictionary of tensors of dataset for calculation.
+        
+        Returns:
+            linear: Predicted value of linear part of each observations.
+        """
+        dnn = tf.tensordot(inputs, tf.transpose(self.v), axes=1)
+
+        for layer in self.dnn_layers:
+            dnn = layer(dnn)
+        
+        return dnn
