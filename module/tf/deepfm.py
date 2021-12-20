@@ -40,7 +40,7 @@ class DeepFM(FM):
         """
         dnn_list = list()
 
-        for _idx, unit in enumerate(dnn_unit):
+        for unit in dnn_unit:
             dnn_list += [tf.keras.layers.Dense(unit, activation=activation)]
             if is_bn:
                 dnn_list += [tf.keras.layers.BatchNormalization()]
@@ -58,14 +58,9 @@ class DeepFM(FM):
         Returns:
             output: Predicted value of each observations.
         """
-        input_layers = [self.input_layers[input_layer](ts) for input_layer, ts in inputs.items()]
-        inputs = tf.keras.layers.Concatenate(name='inputs')(input_layers)
-        axis = 1 if len(inputs.shape) > 1 else None
-
-        linear = self.cal_linear(inputs, axis)
-        fm = self.cal_fm(inputs, axis)
-        dnn = self.cal_dnn(inputs, axis)
-        
+        linear = self.cal_linear(inputs)
+        fm = self.cal_fm(inputs)
+        dnn = self.cal_dnn(inputs)
         output = tf.keras.layers.Concatenate(name='output')([linear, fm, dnn])
         output = self.output_layer(output)
 
@@ -80,7 +75,8 @@ class DeepFM(FM):
         Returns:
             linear: Predicted value of linear part of each observations.
         """
-        dnn = tf.tensordot(inputs, tf.transpose(self.v), axes=1)
+        inputs = [tf.tensordot(input_layer(inputs[layer_name]), self.v[layer_name], axes=1) for layer_name, input_layer in self.input_layers.items()]
+        dnn = tf.keras.layers.Concatenate(name='dnn_inputs', dtype=tf.float32)(inputs)
 
         for layer in self.dnn_layers:
             dnn = layer(dnn)
