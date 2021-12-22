@@ -10,7 +10,7 @@ class DeepFM(FM):
     Args:
         dnn_unit(list(int)): This arg is to input the number of unit of each layer in DNN part.
         activation(str): This arg is to input the activation of each layer in DNN part.
-        is_bn(bool): This arg is to input the usage of BatchNormalization.
+        is_bn(bool): This arg is to control the usage of BatchNormalization.
         is_dropout(float): This arg is to input the dropout weight.
         input_config(dict): This arg is to input the dataset configuration and for the construction of the input.
         latent_k(int): This arg is to declare the embedding dimension of sparse features.
@@ -73,7 +73,7 @@ class DeepFM(FM):
             inputs(dict): Dictionary of tensors of dataset for calculation.
         
         Returns:
-            linear: Predicted value of linear part of each observations.
+            dnn: Predicted value of dnn part of each observations.
         """
         inputs = [tf.tensordot(input_layer(inputs[layer_name]), self.v[layer_name], axes=1) for layer_name, input_layer in self.input_layers.items()]
         dnn = tf.keras.layers.Concatenate(name='dnn_inputs', dtype=tf.float32)(inputs)

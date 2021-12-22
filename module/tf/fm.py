@@ -30,7 +30,7 @@ class FM(Base):
 
         Args:
             config(dict): Dataset configuration
-            random_state(int): Random see
+            random_state(int): Random seed
             data_type(object): Weighting data type
 
         Returns:

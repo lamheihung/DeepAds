@@ -14,7 +14,7 @@ class Base(tf.keras.Model):
 
     Attributes:
         input_config(dict): This attribute is to storte the input_config argument.
-        feat_size(int): This attribute is to store the length of feature size after the one-hot encoding.
+        feat_size(int): This attribute is to store the length of feature size after encoding.
         latent_k(int): This attribute is to store the latent_k argument.
         input_layers(dict): This attribute is to store the model input layer structure.
     """
